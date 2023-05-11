@@ -52,7 +52,7 @@ public:
         virtual Action getAction
                 (
                     int number
-                ) = 0;
+                ) = 0; // = 0; means that it is a pure virtual function: a funciton to be defined in child class
         };
 
 #endif //MINE_SWEEPER_CPP_SHELL_AGENT_HPP

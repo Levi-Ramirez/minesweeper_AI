@@ -58,7 +58,7 @@ int main( int argc, char *argv[] )
     srand( time ( NULL ) );
 
     if ( argc == 1 ){
-        World world(false, std::string(), std::string());
+        World world(false, std::string(), std::string()); //std::string() is an empty string
         int score = world.run();
         if (score)
             cout << "WORLD COMPLETE" << endl;

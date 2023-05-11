@@ -23,7 +23,7 @@
 #define MINE_SWEEPER_CPP_SHELL_MANUALAI_HPP
 
 #include "Agent.hpp"
-#include<iostream>
+#include <iostream>
 
 class ManualAI : public Agent
 {

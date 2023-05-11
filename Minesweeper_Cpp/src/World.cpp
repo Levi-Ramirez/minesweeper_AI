@@ -285,13 +285,13 @@ bool World::doMove()
             uncoverAll();
             return true;
         case Agent::UNCOVER:
-            if (board[agentX][agentY].mine)
+            if (board[agentX][agentY].mine) //if it is a mine, uncover all of them and return that that you are done
             {
                 uncoverAll();
                 return true;
             }
 
-            else if (!board[agentX][agentY].uncovered)
+            else if (!board[agentX][agentY].uncovered) //else, uncover it, and minus the coveredTiles
             {
                 board[agentX][agentY].uncovered = true;
                 --coveredTiles;
@@ -299,14 +299,14 @@ bool World::doMove()
 
             break;
         case Agent::FLAG:
-            if (flagLeft)
+            if (flagLeft) //if there are any flags left
             {
                 board[agentX][agentY].flag = true;
-                --flagLeft;
+                --flagLeft; //decriment the flag numbers
                 if (board[agentX][agentY].mine)
-                    ++correctFlags;
+                    ++correctFlags; //if it is a correct flag, incriment the num of correct flags
                 else
-                    --correctFlags;
+                    --correctFlags; //if it is not a correct flag, decriment it
             }
             break;
         case Agent::UNFLAG:

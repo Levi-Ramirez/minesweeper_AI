@@ -26,6 +26,8 @@
 #include <map>
 #include <set>
 #include <algorithm>
+#include <queue>
+#include <utility>
 
 using namespace std;
 
@@ -36,12 +38,27 @@ public:
 
     Action getAction ( int number ) override;
 
-
     // ======================================================================
     // YOUR CODE BEGINS
     // ======================================================================
+    int **aiBoard;
+    int *frontier[50]; //the uncovered tiles which have unmarked and covered tiles adjacent to them (50 temporarily)
+    queue<pair<int,int>> uncovNext;
 
+    int colDim;
+    int rowDim;
+    int xLast;
+    int yLast; //might not need these
 
+    //initialize board, called when constructor is called
+    void boardInit(int _rowDimension, int _colDimension, int _agentX, int _agentY);
+    //make a destructor to get rid of it at the end
+    ~MyAI ();
+
+    void printBoard();
+    void addAdjacent(int y, int x);
+    bool isCovered(int y, int x);
+    //int getY(int y);
 
     // ======================================================================
     // YOUR CODE ENDS

@@ -74,17 +74,25 @@ Agent::Action MyAI::getAction( int number )
         }
     }
     printBoard();
-    if(!uncovNext.empty()) //when the queue is not empty, these need to removed next
+    if(!uncovNext.empty()) //when the queue is not empty, these need to uncovered next
     {
-        pair<int,int> myP = uncovNext.front();
-        uncovNext.pop();
-        yLast = myP.first;
-        xLast = myP.second;
-        return {UNCOVER, xLast, yLast};
+        while(true && (!uncovNext.empty()))
+        {
+            pair<int,int> myP = uncovNext.front();
+            uncovNext.pop();
+            if(aiBoard[myP.first][myP.second] != -2)
+                continue;
+            yLast = myP.first;
+            xLast = myP.second;
+            return {UNCOVER, xLast, yLast};
+        }
+        
+
+        // return {UNCOVER, xLast, yLast};
     }
     //aiBoard[5][5] = number;
 
-    return {FLAG, 1, 1};
+    //return {FLAG, 1, 1};
 
     return {LEAVE,-1,-1};
     // ======================================================================
@@ -104,10 +112,14 @@ Agent::Action MyAI::getAction( int number )
 void MyAI::addAdjacent(int y, int x) {
     bool up = false;
     bool down = false;
-    if(y - 1 >= 0)
+    if(y - 1 >= 0){
         down = true;
-    if(y + 1 < rowDim)
+        uncovNext.push({y - 1, x});
+    }
+    if(y + 1 < rowDim){
         up = true;
+        uncovNext.push({y + 1, x});
+    }
 
     if(x - 1 >= 0){
         if(isCovered(y, x - 1))
@@ -123,7 +135,7 @@ void MyAI::addAdjacent(int y, int x) {
     }
     if(x + 1 < colDim){
         if(isCovered(y, x + 1))
-            uncovNext.push({y,x + 1});
+            uncovNext.push({y, x + 1});
         if(up){
             if(isCovered(y + 1, x + 1))
                 uncovNext.push({y + 1, x + 1});
@@ -140,6 +152,7 @@ bool MyAI::isCovered(int y, int x)
 {
     if(aiBoard[y][x] == -2)
         return true;
+
     return false;
 }
 

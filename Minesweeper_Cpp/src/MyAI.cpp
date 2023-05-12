@@ -94,19 +94,56 @@ Agent::Action MyAI::getAction( int number )
     //NOTE: this was before in an if statement, but the !uncovNext.empty() in the while loop should be good enough
     // if(!uncovNext.empty()) 
     // {
-        while(true && (!uncovNext.empty())) //when the queue is not empty, these need to uncovered next
+    while(!uncovNext.empty()) //when the queue is not empty, these need to uncovered next
+    {
+        pair<int,int> myP = uncovNext.front();
+        uncovNext.pop();
+        if(aiBoard[myP.first][myP.second] != -2)
+            continue;
+        yLast = myP.first;
+        xLast = myP.second;
+        updateCoverCount(yLast, xLast);
+        printBoard(frontier);
+        return {UNCOVER, xLast, yLast};
+    }
+    // }
+    while(true) //loops until all of the frontier was checked and nothing was found that needed flags around it
+    {
+        while(!flagNext.empty())
         {
-            pair<int,int> myP = uncovNext.front();
-            uncovNext.pop();
-            if(aiBoard[myP.first][myP.second] != -2)
+            pair<int,int> myP = flagNext.front();
+            flagNext.pop();
+            if(aiBoard[myP.first][myP.second] != -2) //not a covered tile to flag
                 continue;
             yLast = myP.first;
             xLast = myP.second;
-            updateCoverCount(yLast, xLast);
+            flagAdjUncovDec(yLast, xLast);
             printBoard(frontier);
-            return {UNCOVER, xLast, yLast};
+            return {FLAG, xLast, yLast};
         }
-    // }
+
+
+        bool needsFlags = false; //checks to see if it was found that something needs flags around it
+        for(int i = 0; i < rowDim; i++)
+        {
+            for(int j = 0; j < colDim; j++)
+            {
+                if(frontier[i][j] != 0){
+                    if(numEqUncov(i, j)) {
+                        addAdjacentToFlag(i, j);
+                        needsFlags = true;
+                    }
+                }
+                if(needsFlags){break;} //break out of inner 
+            }
+            if(needsFlags){break;}
+        }
+        if(needsFlags){continue;}
+        else{break;}
+    }
+
+
+
 
     // LEVI DO THIS
     // check non-zero values in the frontier to see if their adjacent squares
@@ -115,6 +152,8 @@ Agent::Action MyAI::getAction( int number )
     // so...
     //      add elements to flag queue
     //      flag an element if it is not empty
+
+
 
     //aiBoard[5][5] = number;
 
@@ -134,6 +173,7 @@ Agent::Action MyAI::getAction( int number )
 // ======================================================================
 // YOUR CODE BEGINS
 // ======================================================================
+
 
 void MyAI::updateCoverCount(int y, int x) {
     bool up = false;
@@ -214,7 +254,8 @@ bool MyAI::numEqUncov(int y, int x) {
     return false;
 }
 
-// flags y,x and decriments the number on adjacent uncovered squares
+// flags y,x and decriments the number on adjacent uncovered squares & the covered count
+// also, if the new numbers are 0, add them to uncovNext
 void MyAI::flagAdjUncovDec(int y, int x) {
     aiBoard[y][x] = -1;
     bool up = false;
@@ -224,6 +265,10 @@ void MyAI::flagAdjUncovDec(int y, int x) {
         --frontier[y - 1][x];
         if(!isCovered(y - 1, x)){
             --aiBoard[y - 1][x];
+            if(aiBoard[y - 1][x] == 0)
+            {
+                uncovNext.push({y - 1, x});
+            }
         }
     }
     if(y + 1 < rowDim){
@@ -231,6 +276,10 @@ void MyAI::flagAdjUncovDec(int y, int x) {
          --frontier[y + 1][x];
         if(!isCovered(y + 1, x)) {
             --aiBoard[y + 1][x];
+            if(aiBoard[y + 1][x] == 0)
+            {
+                uncovNext.push({y + 1, x});
+            }
         }
     }
 
@@ -238,18 +287,30 @@ void MyAI::flagAdjUncovDec(int y, int x) {
         --frontier[y][x - 1];
         if(!isCovered(y, x - 1)){
             --aiBoard[y][x - 1];
+            if(aiBoard[y][x - 1] == 0)
+            {
+                uncovNext.push({y, x - 1});
+            }
         }
             
         if(up){
             --frontier[y + 1][x - 1];
             if(!isCovered(y + 1, x - 1)){
                 --aiBoard[y + 1][x - 1];
+                if(aiBoard[y + 1][x - 1] == 0)
+                {
+                    uncovNext.push({y + 1, x - 1});
+                }
             }
         }
         if(down){
             --frontier[y - 1][x - 1];
             if(!isCovered(y - 1, x - 1)){
                 --aiBoard[y - 1][x - 1];
+                if(aiBoard[y - 1][x - 1] == 0)
+                {
+                    uncovNext.push({y - 1, x - 1});
+                }
             }
         }
     }
@@ -257,17 +318,29 @@ void MyAI::flagAdjUncovDec(int y, int x) {
         --frontier[y][x + 1];
         if(!isCovered(y, x + 1)){
             --aiBoard[y][x + 1];
+            if(aiBoard[y][x + 1] == 0)
+            {
+                uncovNext.push({y, x + 1});
+            }
         }
         if(up){
             --frontier[y + 1][x + 1];
             if(!isCovered(y + 1, x + 1)){
                 --aiBoard[y + 1][x + 1];
+                if(aiBoard[y + 1][x + 1] == 0)
+                {
+                    uncovNext.push({y + 1, x + 1});
+                }
             }
         }
         if(down){
             --frontier[y - 1][x + 1];
             if(!isCovered(y - 1, x + 1)){
                 --aiBoard[y - 1][x + 1];
+                if(aiBoard[y - 1][x + 1] == 0)
+                {
+                    uncovNext.push({y - 1, x + 1});
+                }
             }
         }
     }

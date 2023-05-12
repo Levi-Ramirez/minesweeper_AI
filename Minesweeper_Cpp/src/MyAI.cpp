@@ -267,7 +267,7 @@ void MyAI::flagAdjUncovDec(int y, int x) {
             --aiBoard[y - 1][x];
             if(aiBoard[y - 1][x] == 0)
             {
-                uncovNext.push({y - 1, x});
+                addAdjacentToUncover(y - 1, x);
             }
         }
     }
@@ -278,7 +278,7 @@ void MyAI::flagAdjUncovDec(int y, int x) {
             --aiBoard[y + 1][x];
             if(aiBoard[y + 1][x] == 0)
             {
-                uncovNext.push({y + 1, x});
+                addAdjacentToUncover(y + 1, x);
             }
         }
     }
@@ -289,7 +289,7 @@ void MyAI::flagAdjUncovDec(int y, int x) {
             --aiBoard[y][x - 1];
             if(aiBoard[y][x - 1] == 0)
             {
-                uncovNext.push({y, x - 1});
+                addAdjacentToUncover(y, x - 1);
             }
         }
             
@@ -299,7 +299,7 @@ void MyAI::flagAdjUncovDec(int y, int x) {
                 --aiBoard[y + 1][x - 1];
                 if(aiBoard[y + 1][x - 1] == 0)
                 {
-                    uncovNext.push({y + 1, x - 1});
+                    addAdjacentToUncover(y + 1, x - 1);
                 }
             }
         }
@@ -309,7 +309,7 @@ void MyAI::flagAdjUncovDec(int y, int x) {
                 --aiBoard[y - 1][x - 1];
                 if(aiBoard[y - 1][x - 1] == 0)
                 {
-                    uncovNext.push({y - 1, x - 1});
+                    addAdjacentToUncover(y - 1, x - 1);
                 }
             }
         }
@@ -320,7 +320,7 @@ void MyAI::flagAdjUncovDec(int y, int x) {
             --aiBoard[y][x + 1];
             if(aiBoard[y][x + 1] == 0)
             {
-                uncovNext.push({y, x + 1});
+                addAdjacentToUncover(y, x + 1);
             }
         }
         if(up){
@@ -329,7 +329,7 @@ void MyAI::flagAdjUncovDec(int y, int x) {
                 --aiBoard[y + 1][x + 1];
                 if(aiBoard[y + 1][x + 1] == 0)
                 {
-                    uncovNext.push({y + 1, x + 1});
+                    addAdjacentToUncover(y + 1, x + 1);
                 }
             }
         }
@@ -339,7 +339,7 @@ void MyAI::flagAdjUncovDec(int y, int x) {
                 --aiBoard[y - 1][x + 1];
                 if(aiBoard[y - 1][x + 1] == 0)
                 {
-                    uncovNext.push({y - 1, x + 1});
+                    addAdjacentToUncover(y - 1, x + 1);
                 }
             }
         }

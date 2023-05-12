@@ -27,6 +27,7 @@
 #include <set>
 #include <algorithm>
 #include <queue>
+#include <map>
 #include <utility>
 
 using namespace std;
@@ -42,8 +43,13 @@ public:
     // YOUR CODE BEGINS
     // ======================================================================
     int **aiBoard;
-    int *frontier[50]; //the uncovered tiles which have unmarked and covered tiles adjacent to them (50 temporarily)
-    queue<pair<int,int>> uncovNext;
+    int **frontier;
+    //int *frontier[50]; //the uncovered tiles which have unmarked and covered tiles adjacent to them (50 temporarily)
+    queue<pair<int,int>> uncovNext; //uncover these next queue
+    queue<pair<int,int>> flagNext; //uncover these next queue
+
+    //map<pair<int,int>, int> uncovFront; //the uncovered frontier (uncovered nodes adjacent to a covered node)
+
 
     int colDim;
     int rowDim;
@@ -55,9 +61,14 @@ public:
     //make a destructor to get rid of it at the end
     ~MyAI ();
 
-    void printBoard();
-    void addAdjacent(int y, int x);
+    void updateCoverCount(int y, int x);
+    bool numEqUncov(int y, int x);
+    void printBoard(int **arr);
+    void addAdjacentToFlag(int y, int x);
+    void addAdjacentToUncover(int y, int x);
     bool isCovered(int y, int x);
+    void flagAdjUncovDec(int y, int x);
+
     //int getY(int y);
 
     // ======================================================================

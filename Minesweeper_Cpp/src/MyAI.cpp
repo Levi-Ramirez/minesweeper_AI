@@ -83,8 +83,8 @@ Agent::Action MyAI::getAction( int number )
     
     if(number != -1)
     {
-        aiBoard[yLast][xLast] = number;
-        if(number == 0)
+        aiBoard[yLast][xLast] = number - numFlagsAdj(yLast, xLast);
+        if(aiBoard[yLast][xLast] == 0)
         {
             addAdjacentToUncover(yLast, xLast);
         }
@@ -103,7 +103,8 @@ Agent::Action MyAI::getAction( int number )
         yLast = myP.first;
         xLast = myP.second;
         updateCoverCount(yLast, xLast);
-        printBoard(frontier);
+        // printBoard(frontier);
+        // printBoard(aiBoard);
         return {UNCOVER, xLast, yLast};
     }
     // }
@@ -118,7 +119,8 @@ Agent::Action MyAI::getAction( int number )
             yLast = myP.first;
             xLast = myP.second;
             flagAdjUncovDec(yLast, xLast);
-            printBoard(frontier);
+            // printBoard(frontier);
+            // printBoard(aiBoard);
             return {FLAG, xLast, yLast};
         }
 
@@ -143,21 +145,7 @@ Agent::Action MyAI::getAction( int number )
     }
 
 
-
-
-    // LEVI DO THIS
-    // check non-zero values in the frontier to see if their adjacent squares
-    // are equal to it's number, if they are, push those elements onto the
-    // flag queue, then call flag to flag them... one... by... one
-    // so...
-    //      add elements to flag queue
-    //      flag an element if it is not empty
-
-
-
-    //aiBoard[5][5] = number;
-
-    //return {FLAG, 1, 1};
+    //do one last dumby test (maybe)
 
     printBoard(aiBoard);
     return {LEAVE,-1,-1};
@@ -206,6 +194,52 @@ void MyAI::updateCoverCount(int y, int x) {
         }
     }
 }
+
+//returns the number of adjacent flags to a recently uncovered square so you can update its value
+int MyAI::numFlagsAdj(int y, int x) {
+    int count = 0;
+    bool up = false;
+    bool down = false;
+    if(y - 1 >= 0){
+        down = true;
+        if(isFlag(y - 1, x))
+            ++count;
+    }
+    if(y + 1 < rowDim){
+        up = true;
+        if(isFlag(y + 1, x))
+            ++count;
+    }
+
+    if(x - 1 >= 0){
+        if(isFlag(y, x - 1))
+            ++count;
+        if(up){
+            if(isFlag(y + 1, x - 1))
+                ++count;
+        }
+        if(down){
+            if(isFlag(y - 1, x - 1))
+                ++count;
+        }
+    }
+    if(x + 1 < colDim){
+        if(isFlag(y, x + 1))
+            ++count;
+        if(up){
+            if(isFlag(y + 1, x + 1))
+                ++count;
+        }
+        if(down){
+            if(isFlag(y - 1, x + 1))
+                ++count;
+        }
+    }
+    
+    return count;
+}
+
+
 
 // check if the number in the square equals the number of uncovered tiles
 // that is adjacent to it
@@ -263,7 +297,7 @@ void MyAI::flagAdjUncovDec(int y, int x) {
     if(y - 1 >= 0){
         down = true;
         --frontier[y - 1][x];
-        if(!isCovered(y - 1, x)){
+        if(!isCovered(y - 1, x) && (aiBoard[y - 1][x] != -1)){
             --aiBoard[y - 1][x];
             if(aiBoard[y - 1][x] == 0)
             {
@@ -274,7 +308,7 @@ void MyAI::flagAdjUncovDec(int y, int x) {
     if(y + 1 < rowDim){
         up = true;
          --frontier[y + 1][x];
-        if(!isCovered(y + 1, x)) {
+        if(!isCovered(y + 1, x) && (aiBoard[y + 1][x] != -1)) {
             --aiBoard[y + 1][x];
             if(aiBoard[y + 1][x] == 0)
             {
@@ -285,7 +319,7 @@ void MyAI::flagAdjUncovDec(int y, int x) {
 
     if(x - 1 >= 0){
         --frontier[y][x - 1];
-        if(!isCovered(y, x - 1)){
+        if(!isCovered(y, x - 1) && (aiBoard[y][x - 1] != -1)){
             --aiBoard[y][x - 1];
             if(aiBoard[y][x - 1] == 0)
             {
@@ -295,7 +329,7 @@ void MyAI::flagAdjUncovDec(int y, int x) {
             
         if(up){
             --frontier[y + 1][x - 1];
-            if(!isCovered(y + 1, x - 1)){
+            if(!isCovered(y + 1, x - 1) && (aiBoard[y + 1][x - 1] != -1)){
                 --aiBoard[y + 1][x - 1];
                 if(aiBoard[y + 1][x - 1] == 0)
                 {
@@ -305,7 +339,7 @@ void MyAI::flagAdjUncovDec(int y, int x) {
         }
         if(down){
             --frontier[y - 1][x - 1];
-            if(!isCovered(y - 1, x - 1)){
+            if(!isCovered(y - 1, x - 1) && (aiBoard[y - 1][x - 1] != -1)){
                 --aiBoard[y - 1][x - 1];
                 if(aiBoard[y - 1][x - 1] == 0)
                 {
@@ -316,7 +350,7 @@ void MyAI::flagAdjUncovDec(int y, int x) {
     }
     if(x + 1 < colDim){
         --frontier[y][x + 1];
-        if(!isCovered(y, x + 1)){
+        if(!isCovered(y, x + 1) && (aiBoard[y][x + 1] != -1)){
             --aiBoard[y][x + 1];
             if(aiBoard[y][x + 1] == 0)
             {
@@ -325,7 +359,7 @@ void MyAI::flagAdjUncovDec(int y, int x) {
         }
         if(up){
             --frontier[y + 1][x + 1];
-            if(!isCovered(y + 1, x + 1)){
+            if(!isCovered(y + 1, x + 1) && (aiBoard[y + 1][x + 1] != -1)){
                 --aiBoard[y + 1][x + 1];
                 if(aiBoard[y + 1][x + 1] == 0)
                 {
@@ -335,7 +369,7 @@ void MyAI::flagAdjUncovDec(int y, int x) {
         }
         if(down){
             --frontier[y - 1][x + 1];
-            if(!isCovered(y - 1, x + 1)){
+            if(!isCovered(y - 1, x + 1) && (aiBoard[y - 1][x + 1] != -1)){
                 --aiBoard[y - 1][x + 1];
                 if(aiBoard[y - 1][x + 1] == 0)
                 {
@@ -352,36 +386,36 @@ void MyAI::addAdjacentToFlag(int y, int x) {
     bool down = false;
     if(y - 1 >= 0){
         down = true;
-        if(!isCovered(y - 1, x))
+        if(isCovered(y - 1, x))
             flagNext.push({y - 1, x});
     }
     if(y + 1 < rowDim){
         up = true;
-        if(!isCovered(y - 1, x))
+        if(isCovered(y + 1, x))
             flagNext.push({y + 1, x});
     }
 
     if(x - 1 >= 0){
-        if(!isCovered(y, x - 1))
+        if(isCovered(y, x - 1))
             flagNext.push({y, x - 1});
         if(up){
-            if(!isCovered(y + 1, x - 1))
+            if(isCovered(y + 1, x - 1))
                 flagNext.push({y + 1, x - 1});
         }
         if(down){
-            if(!isCovered(y - 1, x - 1))
+            if(isCovered(y - 1, x - 1))
                 flagNext.push({y - 1, x - 1});
         }
     }
     if(x + 1 < colDim){
-        if(!isCovered(y, x + 1))
+        if(isCovered(y, x + 1))
             flagNext.push({y, x + 1});
         if(up){
-            if(!isCovered(y + 1, x + 1))
+            if(isCovered(y + 1, x + 1))
                 flagNext.push({y + 1, x + 1});
         }
         if(down){
-            if(!isCovered(y - 1, x + 1))
+            if(isCovered(y - 1, x + 1))
                 flagNext.push({y - 1, x + 1});
         }
     }
@@ -435,6 +469,14 @@ void MyAI::addAdjacentToUncover(int y, int x)
 bool MyAI::isCovered(int y, int x)
 {
     if(aiBoard[y][x] == -2)
+        return true;
+
+    return false;
+}
+
+bool MyAI::isFlag(int y, int x)
+{
+    if(aiBoard[y][x] == -1)
         return true;
 
     return false;

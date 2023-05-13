@@ -61,6 +61,8 @@ public:
     //make a destructor to get rid of it at the end
     ~MyAI ();
 
+    bool isFlag(int y, int x);
+    int numFlagsAdj(int y, int x);
     void updateCoverCount(int y, int x);
     bool numEqUncov(int y, int x);
     void printBoard(int **arr);

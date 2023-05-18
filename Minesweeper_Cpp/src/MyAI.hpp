@@ -29,6 +29,7 @@
 #include <queue>
 #include <map>
 #include <utility>
+#include <vector>
 
 using namespace std;
 
@@ -47,8 +48,13 @@ public:
     //int *frontier[50]; //the uncovered tiles which have unmarked and covered tiles adjacent to them (50 temporarily)
     queue<pair<int,int>> uncovNext; //uncover these next queue
     queue<pair<int,int>> flagNext; //uncover these next queue
+    // [(y, x, flagged = 0), (y, x, flagged = 1), (y, x, flagged = 0), (y, x, flagged = 1)]
+    // [(y, x, flagged = 1), (y, x, flagged = 1), (y, x, flagged = 1), (y, x, flagged = 0)]
+    // [(y, x, #flagsuc= 1), (y, x, #flagsuc= 2), (y, x, #flagsuc= 1), (y, x, #flagsuc= 1)]
 
     //map<pair<int,int>, int> uncovFront; //the uncovered frontier (uncovered nodes adjacent to a covered node)
+    // vector<array<int, 3>> uncovAdjVect; //a vector for the uncovered adjacent tiles
+    vector<array<int, 3>> treeSolutions;
 
 
     int colDim;
@@ -60,7 +66,7 @@ public:
     void boardInit(int _rowDimension, int _colDimension, int _agentX, int _agentY);
     //make a destructor to get rid of it at the end
     ~MyAI ();
-
+    bool adjacentUncovered(int y, int x);
     bool isFlag(int y, int x);
     int numFlagsAdj(int y, int x);
     void updateCoverCount(int y, int x);

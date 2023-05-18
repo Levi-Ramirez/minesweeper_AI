@@ -18,6 +18,7 @@
 // ======================================================================
 
 #include "MyAI.hpp"
+using namespace std;
 
 // flags = -1, covered = -2,
 // agent is the parent class of MyAI, so here we initialize it in
@@ -144,10 +145,24 @@ Agent::Action MyAI::getAction( int number )
         else{break;}
     }
 
+//tree method:
+    //store uncovAdjVect positions
+    vector<array<int, 3>> uncovAdjVect;
+    for(int i = 0; i < rowDim; i++)
+    {
+        for(int j = 0; j < colDim; j++)
+        {
+            if(adjacentUncovered(i, j)){
+                uncovAdjVect.push_back({i,j,0});
+            }
+        }
+    }
+    //run the tree method
+
 
     //do one last dumby test (maybe)
 
-    printBoard(aiBoard);
+    //printBoard(aiBoard);
     return {LEAVE,-1,-1};
     // ======================================================================
     // YOUR CODE ENDS
@@ -163,6 +178,48 @@ Agent::Action MyAI::getAction( int number )
 // ======================================================================
 
 
+bool MyAI::adjacentUncovered(int y, int x) {
+    if(aiBoard[y][x] != -2) return false;
+    bool up = false;
+    bool down = false;
+    if(y - 1 >= 0){
+        down = true;
+        if(!isCovered(y - 1, x))
+            return true;
+    }
+    if(y + 1 < rowDim){
+        up = true;
+        if(!isCovered(y + 1, x))
+            return true;
+    }
+
+    if(x - 1 >= 0){
+        if(!isCovered(y, x - 1))
+            return true;
+        if(up){
+            if(!isCovered(y + 1, x - 1))
+            return true;
+        }
+        if(down){
+            if(!isCovered(y - 1, x - 1))
+            return true;
+        }
+    }
+    if(x + 1 < colDim){
+        if(!isCovered(y, x + 1))
+            return true;
+        if(up){
+            if(!isCovered(y + 1, x + 1))
+            return true;
+        }
+        if(down){
+            if(!isCovered(y - 1, x + 1))
+            return true;
+        }
+    }
+
+    return false;
+}
 void MyAI::updateCoverCount(int y, int x) {
     bool up = false;
     bool down = false;

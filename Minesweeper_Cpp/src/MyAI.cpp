@@ -73,7 +73,11 @@ MyAI::~MyAI() {
     for(int i = 0; i < colDimension; ++i)
         delete[] aiBoard[i];
     
+    for(int i = 0; i < colDimension; ++i)
+        delete[] frontier;
+    
     delete [] aiBoard;
+    delete [] frontier;
 }
 
 Agent::Action MyAI::getAction( int number )
@@ -157,9 +161,88 @@ Agent::Action MyAI::getAction( int number )
             }
         }
     }
+
     //run the tree method
+    //cout << "we hereeee" << endl;
+    treeMethod(uncovAdjVect, uncovAdjVect.size());
+
+    int sizeSolu = treeSolutions.size();
+
+    //cout << "treeSolutions.size(): " << sizeSolu << endl;
+    //add solutions to a map mapping them to the count
+    map<pair<int,int>, float> soluMap;
+    pair<int,int> curPair;
+    for(int i = 0; i < treeSolutions.size(); i++) {
+        // curPair = {treeSolutions[i][0], treeSolutions[i][1]};
+        for(int j = 0; j < treeSolutions[i].size(); j++) {
+            curPair.first = treeSolutions[i][j][0];
+            curPair.second = treeSolutions[i][j][1];
+            //cout << "addPair: " << curPair.first << ", " << curPair.second << endl;
+            if(soluMap.find(curPair) != soluMap.end()){
+                soluMap[curPair] += 1;
+            }
+            else {
+                soluMap[curPair] = 1;
+            }
+        }
+    }
+    
+    bool guess = true;
+    //cout << "sizeSolu: " << sizeSolu << endl;
+    for(auto const& item: soluMap) {
+        //cout << "item.second: " << item.second << endl;
+        soluMap[item.first] = item.second / sizeSolu;
+        //cout << "soluMap item:" << soluMap[item.first] << endl;
+        if(soluMap[item.first] == 1) { // if its 1, it needs a flag in all solutions
+            flagNext.push(item.first);
+            //cout << "item added to queue:" << item.first.first << ", " << item.first.second << endl;
+            guess = false;
+        }
+    }
+    if(guess) {
+        float maxVal = 0;
+        pair<int, int> maxPair = {-1, -1};
+        for (const auto& item : soluMap) {
+            if(item.second > maxVal) {
+                maxVal = item.second;
+                maxPair = item.first;
+            }
+        }
+        if(maxPair.first != -1) {
+            //cout << "need to take an educated guess" << endl;
+            flagNext.push(maxPair);
+        }
+        else {
+            //cout << "need to randomly guess" << endl;
+        }
+        
+    }
+    //run the flag process
+    while(!flagNext.empty())
+    {
+        //cout << "Enter possible-flag process" << endl;
+        pair<int,int> myP = flagNext.front();
+        flagNext.pop();
+        if(aiBoard[myP.first][myP.second] != -2) //not a covered tile to flag
+            continue;
+        yLast = myP.first;
+        xLast = myP.second;
+        flagAdjUncovDec(yLast, xLast);
+        // printBoard(frontier);
+        // printBoard(aiBoard);
+        treeSolutions.clear();
+        return {FLAG, xLast, yLast};
+    }
 
 
+
+    // for(int i = 0; i < treeSolutions.size(); i++) {
+    //     cout << "solution " << i << ": ";
+    //     for(int j = 0; j < treeSolutions[i].size(); j++) {
+    //         cout << "[" << treeSolutions[i][j][0] << " " << treeSolutions[i][j][0] << " " << treeSolutions[i][j][0] << "] ";
+    //     }
+    //     cout << endl;
+    // }
     //do one last dumby test (maybe)
 
     //printBoard(aiBoard);
@@ -167,7 +250,6 @@ Agent::Action MyAI::getAction( int number )
     // ======================================================================
     // YOUR CODE ENDS
     // ======================================================================
-
 }
 
 
@@ -176,6 +258,65 @@ Agent::Action MyAI::getAction( int number )
 // ======================================================================
 // YOUR CODE BEGINS
 // ======================================================================
+bool MyAI::isDuplicateVect(vector<array<int, 3>>& vect, int size) {
+
+    for(int i = 0; i < treeSolutions.size(); i++) {
+        for(int j = 0; j < size; j++) {
+            //see if they are equal (also account for that their size may not be equal, if they aren't then it automatically isn't equal)
+            if(treeSolutions[i][j][0] == vect[j][0]) {
+                if(treeSolutions[i][j][1] == vect[j][1]) {
+                    if(treeSolutions[i][j][2] == vect[j][2]) {
+                        return true;
+                    }
+                }
+            }
+        }
+    }
+    return false;
+}
+void MyAI::treeMethod(vector<array<int, 3>>& vect, int size){
+    int res = 0;
+    //cout << "size: " << size << endl;
+    //printBoard(aiBoard);
+    for(int i = 0; i < size; i++) {
+        //cout << "possible loop" << endl;
+        if(isFlag(vect[i][0], vect[i][1])){
+            //cout << "is flag" << endl;
+            continue; //if it already is a flag, go back to the top of the loop and try again
+        }
+        fakeFlag(vect[i][0], vect[i][1]); //add a flag
+        //printBoard(aiBoard);
+        res = vectAllZerosOrNeg(vect, size); //check results
+        if(res == 0){ //means there has been a solution
+            //cout << "is zero" << endl;
+            //printBoard(aiBoard);
+            vector<array<int, 3>> vectSolution;
+            storeSuccess(vect, size, vectSolution); //store the flagged vectors that led to a solution here
+            if(!isDuplicateVect(vectSolution, vectSolution.size())) {
+                treeSolutions.push_back(vectSolution); //store this vector into the possible solutions
+            }
+            vectSolution.clear();
+            unFakeFlag(vect[i][0], vect[i][1]); //unflag most recent flag before returning
+            continue; //return (actually... continue) because you found a solution, no further recursion will be another solution down this branch
+        }
+        else if(res == -1) {
+            //cout << "is neg 1" << endl;
+            //printBoard(aiBoard);
+            unFakeFlag(vect[i][0], vect[i][1]); //unflag most recent flag before returning
+            continue; //return (actually... continue) this is not a solution
+        }
+        //cout << "recurs" << endl;
+        treeMethod(vect, size); // continue recurssing if the above isn't true
+        unFakeFlag(vect[i][0], vect[i][1]); // after you recurs down this branch unflag it to go to other options
+    }
+}
+
+void MyAI::storeSuccess(vector<array<int, 3>>& vect, int size, vector<array<int, 3>>& solution){
+    for(int i = 0; i < size; i++) {
+        if(isFlag(vect[i][0], vect[i][1]))
+            solution.push_back(vect[i]);
+    }
+}
 
 
 bool MyAI::adjacentUncovered(int y, int x) {
@@ -184,36 +325,36 @@ bool MyAI::adjacentUncovered(int y, int x) {
     bool down = false;
     if(y - 1 >= 0){
         down = true;
-        if(!isCovered(y - 1, x))
+        if(!isCovered(y - 1, x) && !isFlag(y - 1, x))
             return true;
     }
     if(y + 1 < rowDim){
         up = true;
-        if(!isCovered(y + 1, x))
+        if(!isCovered(y + 1, x) && !isFlag(y + 1, x))
             return true;
     }
 
     if(x - 1 >= 0){
-        if(!isCovered(y, x - 1))
+        if(!isCovered(y, x - 1) && !isFlag(y, x - 1))
             return true;
         if(up){
-            if(!isCovered(y + 1, x - 1))
+            if(!isCovered(y + 1, x - 1) && !isFlag(y + 1, x - 1))
             return true;
         }
         if(down){
-            if(!isCovered(y - 1, x - 1))
+            if(!isCovered(y - 1, x - 1) && !isFlag(y - 1, x - 1))
             return true;
         }
     }
     if(x + 1 < colDim){
-        if(!isCovered(y, x + 1))
+        if(!isCovered(y, x + 1) && !isFlag(y, x + 1))
             return true;
         if(up){
-            if(!isCovered(y + 1, x + 1))
+            if(!isCovered(y + 1, x + 1) && !isFlag(y + 1, x + 1))
             return true;
         }
         if(down){
-            if(!isCovered(y - 1, x + 1))
+            if(!isCovered(y - 1, x + 1) && !isFlag(y - 1, x + 1))
             return true;
         }
     }
@@ -348,13 +489,13 @@ bool MyAI::numEqUncov(int y, int x) {
 // flags y,x and decriments the number on adjacent uncovered squares & the covered count
 // also, if the new numbers are 0, add them to uncovNext
 void MyAI::flagAdjUncovDec(int y, int x) {
-    aiBoard[y][x] = -1;
+    aiBoard[y][x] = -4;
     bool up = false;
     bool down = false;
     if(y - 1 >= 0){
         down = true;
         --frontier[y - 1][x];
-        if(!isCovered(y - 1, x) && (aiBoard[y - 1][x] != -1)){
+        if(!isCovered(y - 1, x) && (aiBoard[y - 1][x] != -4)){
             --aiBoard[y - 1][x];
             if(aiBoard[y - 1][x] == 0)
             {
@@ -365,7 +506,7 @@ void MyAI::flagAdjUncovDec(int y, int x) {
     if(y + 1 < rowDim){
         up = true;
          --frontier[y + 1][x];
-        if(!isCovered(y + 1, x) && (aiBoard[y + 1][x] != -1)) {
+        if(!isCovered(y + 1, x) && (aiBoard[y + 1][x] != -4)) {
             --aiBoard[y + 1][x];
             if(aiBoard[y + 1][x] == 0)
             {
@@ -376,7 +517,7 @@ void MyAI::flagAdjUncovDec(int y, int x) {
 
     if(x - 1 >= 0){
         --frontier[y][x - 1];
-        if(!isCovered(y, x - 1) && (aiBoard[y][x - 1] != -1)){
+        if(!isCovered(y, x - 1) && (aiBoard[y][x - 1] != -4)){
             --aiBoard[y][x - 1];
             if(aiBoard[y][x - 1] == 0)
             {
@@ -386,7 +527,7 @@ void MyAI::flagAdjUncovDec(int y, int x) {
             
         if(up){
             --frontier[y + 1][x - 1];
-            if(!isCovered(y + 1, x - 1) && (aiBoard[y + 1][x - 1] != -1)){
+            if(!isCovered(y + 1, x - 1) && (aiBoard[y + 1][x - 1] != -4)){
                 --aiBoard[y + 1][x - 1];
                 if(aiBoard[y + 1][x - 1] == 0)
                 {
@@ -396,7 +537,7 @@ void MyAI::flagAdjUncovDec(int y, int x) {
         }
         if(down){
             --frontier[y - 1][x - 1];
-            if(!isCovered(y - 1, x - 1) && (aiBoard[y - 1][x - 1] != -1)){
+            if(!isCovered(y - 1, x - 1) && (aiBoard[y - 1][x - 1] != -4)){
                 --aiBoard[y - 1][x - 1];
                 if(aiBoard[y - 1][x - 1] == 0)
                 {
@@ -407,7 +548,7 @@ void MyAI::flagAdjUncovDec(int y, int x) {
     }
     if(x + 1 < colDim){
         --frontier[y][x + 1];
-        if(!isCovered(y, x + 1) && (aiBoard[y][x + 1] != -1)){
+        if(!isCovered(y, x + 1) && (aiBoard[y][x + 1] != -4)){
             --aiBoard[y][x + 1];
             if(aiBoard[y][x + 1] == 0)
             {
@@ -416,7 +557,7 @@ void MyAI::flagAdjUncovDec(int y, int x) {
         }
         if(up){
             --frontier[y + 1][x + 1];
-            if(!isCovered(y + 1, x + 1) && (aiBoard[y + 1][x + 1] != -1)){
+            if(!isCovered(y + 1, x + 1) && (aiBoard[y + 1][x + 1] != -4)){
                 --aiBoard[y + 1][x + 1];
                 if(aiBoard[y + 1][x + 1] == 0)
                 {
@@ -426,12 +567,128 @@ void MyAI::flagAdjUncovDec(int y, int x) {
         }
         if(down){
             --frontier[y - 1][x + 1];
-            if(!isCovered(y - 1, x + 1) && (aiBoard[y - 1][x + 1] != -1)){
+            if(!isCovered(y - 1, x + 1) && (aiBoard[y - 1][x + 1] != -4)){
                 --aiBoard[y - 1][x + 1];
                 if(aiBoard[y - 1][x + 1] == 0)
                 {
                     addAdjacentToUncover(y - 1, x + 1);
                 }
+            }
+        }
+    }
+}
+
+void MyAI::fakeFlag(int y, int x) {
+    aiBoard[y][x] = -4;
+    bool up = false;
+    bool down = false;
+    if(y - 1 >= 0){
+        down = true;
+        --frontier[y - 1][x];
+        if(!isCovered(y - 1, x) && (aiBoard[y - 1][x] != -4)){
+            --aiBoard[y - 1][x];
+        }
+    }
+    if(y + 1 < rowDim){
+        up = true;
+         --frontier[y + 1][x];
+        if(!isCovered(y + 1, x) && (aiBoard[y + 1][x] != -4)) {
+            --aiBoard[y + 1][x];
+        }
+    }
+
+    if(x - 1 >= 0){
+        --frontier[y][x - 1];
+        if(!isCovered(y, x - 1) && (aiBoard[y][x - 1] != -4)){
+            --aiBoard[y][x - 1];
+        }
+            
+        if(up){
+            --frontier[y + 1][x - 1];
+            if(!isCovered(y + 1, x - 1) && (aiBoard[y + 1][x - 1] != -4)){
+                --aiBoard[y + 1][x - 1];
+            }
+        }
+        if(down){
+            --frontier[y - 1][x - 1];
+            if(!isCovered(y - 1, x - 1) && (aiBoard[y - 1][x - 1] != -4)){
+                --aiBoard[y - 1][x - 1];
+            }
+        }
+    }
+    if(x + 1 < colDim){
+        --frontier[y][x + 1];
+        if(!isCovered(y, x + 1) && (aiBoard[y][x + 1] != -4)){
+            --aiBoard[y][x + 1];
+        }
+        if(up){
+            --frontier[y + 1][x + 1];
+            if(!isCovered(y + 1, x + 1) && (aiBoard[y + 1][x + 1] != -4)){
+                --aiBoard[y + 1][x + 1];
+            }
+        }
+        if(down){
+            --frontier[y - 1][x + 1];
+            if(!isCovered(y - 1, x + 1) && (aiBoard[y - 1][x + 1] != -4)){
+                --aiBoard[y - 1][x + 1];
+            }
+        }
+    }
+}
+
+void MyAI::unFakeFlag(int y, int x) {
+    aiBoard[y][x] = -2;
+    bool up = false;
+    bool down = false;
+    if(y - 1 >= 0){
+        down = true;
+        ++frontier[y - 1][x];
+        if(!isCovered(y - 1, x) && (aiBoard[y - 1][x] != -4)){
+            ++aiBoard[y - 1][x];
+        }
+    }
+    if(y + 1 < rowDim){
+        up = true;
+         ++frontier[y + 1][x];
+        if(!isCovered(y + 1, x) && (aiBoard[y + 1][x] != -4)) {
+            ++aiBoard[y + 1][x];
+        }
+    }
+
+    if(x - 1 >= 0){
+        ++frontier[y][x - 1];
+        if(!isCovered(y, x - 1) && (aiBoard[y][x - 1] != -4)){
+            ++aiBoard[y][x - 1];
+        }
+            
+        if(up){
+            ++frontier[y + 1][x - 1];
+            if(!isCovered(y + 1, x - 1) && (aiBoard[y + 1][x - 1] != -4)){
+                ++aiBoard[y + 1][x - 1];
+            }
+        }
+        if(down){
+            ++frontier[y - 1][x - 1];
+            if(!isCovered(y - 1, x - 1) && (aiBoard[y - 1][x - 1] != -4)){
+                ++aiBoard[y - 1][x - 1];
+            }
+        }
+    }
+    if(x + 1 < colDim){
+        ++frontier[y][x + 1];
+        if(!isCovered(y, x + 1) && (aiBoard[y][x + 1] != -4)){
+            ++aiBoard[y][x + 1];
+        }
+        if(up){
+            ++frontier[y + 1][x + 1];
+            if(!isCovered(y + 1, x + 1) && (aiBoard[y + 1][x + 1] != -4)){
+                ++aiBoard[y + 1][x + 1];
+            }
+        }
+        if(down){
+            ++frontier[y - 1][x + 1];
+            if(!isCovered(y - 1, x + 1) && (aiBoard[y - 1][x + 1] != -4)){
+                ++aiBoard[y - 1][x + 1];
             }
         }
     }
@@ -522,6 +779,121 @@ void MyAI::addAdjacentToUncover(int y, int x)
 }
 
 
+int MyAI::vectAllZerosOrNeg(vector<array<int, 3>>& vect, int size) {
+    bool contRecurs = false;
+    int res = 0;
+    for(int i = 0; i < size; i++) {
+        res = allZerosOrNeg(vect[i][0], vect[i][1]);
+        if(res == 1){
+            //cout << "flagged to continue" << endl;
+            contRecurs = true; //flag to continue recursion
+        }
+        else if(res == -1){
+            //cout << "flagged to backtrack in this recursive step, returning -1" << endl;
+            return -1;
+        }
+    }
+    if(contRecurs){
+        return 1;
+    }
+    else
+        return 0;
+}
+
+int MyAI::allZerosOrNeg(int y, int x)
+{
+    bool posVals = false;
+    bool up = false;
+    bool down = false;
+    if(y - 1 >= 0){
+        down = true;
+        if(!isCovered(y - 1, x) && !isFlag(y - 1, x)){
+            if(aiBoard[y - 1][x] == -1){
+                return -1;
+            }
+            else if(aiBoard[y - 1][x] != 0){
+                posVals = true;
+            }
+        }
+    }
+    if(y + 1 < rowDim){
+        up = true;
+        if(!isCovered(y + 1, x) && !isFlag(y + 1, x)){
+            if(aiBoard[y + 1][x] == -1){
+                return -1;
+            }
+            else if(aiBoard[y + 1][x] != 0){
+                posVals = true;
+            }
+        }
+    }
+
+    if(x - 1 >= 0){
+        if(!isCovered(y, x - 1) && !isFlag(y, x - 1)){
+            if(aiBoard[y][x - 1] == -1){
+                return -1;
+            }
+            else if(aiBoard[y][x - 1] != 0){
+                posVals = true;
+            }
+        }
+        if(up){
+            if(!isCovered(y + 1, x - 1) && !isFlag(y + 1, x - 1)){
+                if(aiBoard[y + 1][x - 1] == -1){
+                    return -1;
+                }
+                else if(aiBoard[y + 1][x - 1] != 0){
+                    posVals = true;
+                }
+            }
+        }
+        if(down){
+            if(!isCovered(y - 1, x - 1) && !isFlag(y - 1, x - 1)){
+                if(aiBoard[y - 1][x - 1] == -1){
+                    return -1;
+                }
+                else if(aiBoard[y - 1][x - 1] != 0){
+                    posVals = true;
+                }
+            }
+        }
+    }
+    if(x + 1 < colDim){
+        if(!isCovered(y, x + 1) && !isFlag(y, x + 1)){
+            if(aiBoard[y][x + 1] == -1){
+                return -1;
+            }
+            else if(aiBoard[y][x + 1] != 0){
+                posVals = true;
+            }
+        }
+        if(up){
+            if(!isCovered(y + 1, x + 1) && !isFlag(y + 1, x + 1)){
+                if(aiBoard[y + 1][x + 1] == -1){
+                    return -1;
+                }
+                else if(aiBoard[y + 1][x + 1] != 0){
+                    posVals = true;
+                }
+            }
+        }
+        if(down){
+            if(!isCovered(y - 1, x + 1) && !isFlag(y - 1, x + 1)){
+                if(aiBoard[y - 1][x + 1] == -1){
+                    return -1;
+                }
+                else if(aiBoard[y - 1][x + 1] != 0){
+                    posVals = true;
+                }
+            }
+        }
+    }
+    if(posVals){
+        return 1;
+    }
+    return 0;
+}
+
 
 bool MyAI::isCovered(int y, int x)
 {
@@ -533,7 +905,7 @@ bool MyAI::isCovered(int y, int x)
 
 bool MyAI::isFlag(int y, int x)
 {
-    if(aiBoard[y][x] == -1)
+    if(aiBoard[y][x] == -4)
         return true;
 
     return false;

@@ -54,7 +54,7 @@ public:
 
     //map<pair<int,int>, int> uncovFront; //the uncovered frontier (uncovered nodes adjacent to a covered node)
     // vector<array<int, 3>> uncovAdjVect; //a vector for the uncovered adjacent tiles
-    vector<array<int, 3>> treeSolutions;
+    vector<vector<array<int, 3>>> treeSolutions;
 
 
     int colDim;
@@ -66,7 +66,10 @@ public:
     void boardInit(int _rowDimension, int _colDimension, int _agentX, int _agentY);
     //make a destructor to get rid of it at the end
     ~MyAI ();
+    bool isDuplicateVect(vector<array<int, 3>>& vect, int size);
     bool adjacentUncovered(int y, int x);
+    void treeMethod(vector<array<int, 3>>& vect, int size);
+    void storeSuccess(vector<array<int, 3>>& vect, int size, vector<array<int, 3>>& solution);
     bool isFlag(int y, int x);
     int numFlagsAdj(int y, int x);
     void updateCoverCount(int y, int x);
@@ -76,7 +79,10 @@ public:
     void addAdjacentToUncover(int y, int x);
     bool isCovered(int y, int x);
     void flagAdjUncovDec(int y, int x);
-
+    void fakeFlag(int y, int x);
+    void unFakeFlag(int y, int x);
+    int vectAllZerosOrNeg(vector<array<int, 3>>& vect, int size);
+    int allZerosOrNeg(int y, int x);
     //int getY(int y);
 
     // ======================================================================

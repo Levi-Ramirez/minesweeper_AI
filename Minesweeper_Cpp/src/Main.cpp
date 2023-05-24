@@ -165,6 +165,7 @@ int main( int argc, char *argv[] )
             try {
                 World world(debug, aiType, individualWorldFile);
                 score = world.run();
+                cout << "finished running world" << endl;
                 if (score == 3)
                     ++expert;
                 else if (score == 2)

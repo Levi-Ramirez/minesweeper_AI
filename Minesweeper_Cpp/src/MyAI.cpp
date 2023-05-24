@@ -163,21 +163,19 @@ Agent::Action MyAI::getAction( int number )
     }
 
     //run the tree method
-    //cout << "we hereeee" << endl;
     treeMethod(uncovAdjVect, uncovAdjVect.size());
 
-    int sizeSolu = treeSolutions.size();
+    int sizeSolu = treeSolutions.size(); //store the treeSolutions.size()
 
-    //cout << "treeSolutions.size(): " << sizeSolu << endl;
     //add solutions to a map mapping them to the count
-    map<pair<int,int>, float> soluMap;
+    map<pair<int,int>, float> soluMap; //create a solution map with (y, x): frquency
     pair<int,int> curPair;
+
+    //loop to get the treeSolutions into the map
     for(int i = 0; i < treeSolutions.size(); i++) {
-        // curPair = {treeSolutions[i][0], treeSolutions[i][1]};
         for(int j = 0; j < treeSolutions[i].size(); j++) {
             curPair.first = treeSolutions[i][j][0];
             curPair.second = treeSolutions[i][j][1];
-            //cout << "addPair: " << curPair.first << ", " << curPair.second << endl;
             if(soluMap.find(curPair) != soluMap.end()){
                 soluMap[curPair] += 1;
             }
@@ -188,18 +186,16 @@ Agent::Action MyAI::getAction( int number )
     }
     
     bool guess = true;
-    //cout << "sizeSolu: " << sizeSolu << endl;
+
+    //loop to calculate the frequency (by dividing by the total number of full solutions)  
     for(auto const& item: soluMap) {
-        //cout << "item.second: " << item.second << endl;
-        soluMap[item.first] = item.second / sizeSolu;
-        //cout << "soluMap item:" << soluMap[item.first] << endl;
+        soluMap[item.first] = item.second / sizeSolu; //gets the ratio of the frequency of the solution for every flagged vertex
         if(soluMap[item.first] == 1) { // if its 1, it needs a flag in all solutions
-            flagNext.push(item.first);
-            //cout << "item added to queue:" << item.first.first << ", " << item.first.second << endl;
+            flagNext.push(item.first); //push it to flagNext
             guess = false;
         }
     }
-    if(guess) {
+    if(guess) { //if no frequencies equal 1, then we need an educated guess
         float maxVal = 0;
         pair<int, int> maxPair = {-1, -1};
         for (const auto& item : soluMap) {
@@ -208,16 +204,16 @@ Agent::Action MyAI::getAction( int number )
                 maxPair = item.first;
             }
         }
-        if(maxPair.first != -1) {
-            //cout << "need to take an educated guess" << endl;
+        if(maxPair.first != -1) { //need to take an educated guess
             flagNext.push(maxPair);
         }
-        else {
-            //cout << "need to randomly guess" << endl;
+        else { //if it gets to here, then we need to randomly guess as no solutions were found (to be done later)
+
         }
         
     }
-    //run the flag process
+
+    //run the flag process on the new found flags we found via the treeMethod
     while(!flagNext.empty())
     {
         //cout << "Enter possible-flag process" << endl;
@@ -235,7 +231,7 @@ Agent::Action MyAI::getAction( int number )
     }
 
 
-
+    //print treeSolutions
     // for(int i = 0; i < treeSolutions.size(); i++) {
     //     cout << "solution " << i << ": ";
     //     for(int j = 0; j < treeSolutions[i].size(); j++) {
@@ -243,9 +239,11 @@ Agent::Action MyAI::getAction( int number )
     //     }
     //     cout << endl;
     // }
+
+
     //do one last dumby test (maybe)
 
-    //printBoard(aiBoard);
+
     return {LEAVE,-1,-1};
     // ======================================================================
     // YOUR CODE ENDS
@@ -258,6 +256,8 @@ Agent::Action MyAI::getAction( int number )
 // ======================================================================
 // YOUR CODE BEGINS
 // ======================================================================
+
+//checks to see if the vertex already exists in treeSolutions
 bool MyAI::isDuplicateVect(vector<array<int, 3>>& vect, int size) {
 
     for(int i = 0; i < treeSolutions.size(); i++) {
@@ -274,43 +274,38 @@ bool MyAI::isDuplicateVect(vector<array<int, 3>>& vect, int size) {
     }
     return false;
 }
+
 void MyAI::treeMethod(vector<array<int, 3>>& vect, int size){
     int res = 0;
-    //cout << "size: " << size << endl;
-    //printBoard(aiBoard);
+
     for(int i = 0; i < size; i++) {
-        //cout << "possible loop" << endl;
-        if(isFlag(vect[i][0], vect[i][1])){
-            //cout << "is flag" << endl;
-            continue; //if it already is a flag, go back to the top of the loop and try again
+        if(isFlag(vect[i][0], vect[i][1])){ //if it already is a flag, go back to the top of the loop and try again
+            continue; 
         }
         fakeFlag(vect[i][0], vect[i][1]); //add a flag
-        //printBoard(aiBoard);
-        res = vectAllZerosOrNeg(vect, size); //check results
+        res = vectAllZerosOrNeg(vect, size); //gets a integer representation the status of the board: 0 = solution found, -1 means invalid flag combination, 1 = need to keep recurring down the tree for a solution
+
         if(res == 0){ //means there has been a solution
-            //cout << "is zero" << endl;
-            //printBoard(aiBoard);
             vector<array<int, 3>> vectSolution;
             storeSuccess(vect, size, vectSolution); //store the flagged vectors that led to a solution here
-            if(!isDuplicateVect(vectSolution, vectSolution.size())) {
+            if(!isDuplicateVect(vectSolution, vectSolution.size())) {//if it is not a duplicate...
                 treeSolutions.push_back(vectSolution); //store this vector into the possible solutions
             }
             vectSolution.clear();
-            unFakeFlag(vect[i][0], vect[i][1]); //unflag most recent flag before returning
-            continue; //return (actually... continue) because you found a solution, no further recursion will be another solution down this branch
+            unFakeFlag(vect[i][0], vect[i][1]); //unflag most recent flag before going back to the top of the loop
+            continue; //continue because you found a solution (aka backtrack)
         }
-        else if(res == -1) {
-            //cout << "is neg 1" << endl;
-            //printBoard(aiBoard);
+        else if(res == -1) { // -1 means that it was invalid flag combination
             unFakeFlag(vect[i][0], vect[i][1]); //unflag most recent flag before returning
-            continue; //return (actually... continue) this is not a solution
+            continue; //continue, this is not a solution (aka backtrack)
         }
         //cout << "recurs" << endl;
         treeMethod(vect, size); // continue recurssing if the above isn't true
-        unFakeFlag(vect[i][0], vect[i][1]); // after you recurs down this branch unflag it to go to other options
+        unFakeFlag(vect[i][0], vect[i][1]); // after you recurs down this branch unflag it to go to other options, ex: [-4, -2, -2] --> [-2, -2, -2], so the first one was unflagged and on the next step it will go: [-2, -4, -2]
     }
 }
 
+//storeSuccess stores the vectors that are flags solution. This is later stored in treeSolution (if not a duplicate)
 void MyAI::storeSuccess(vector<array<int, 3>>& vect, int size, vector<array<int, 3>>& solution){
     for(int i = 0; i < size; i++) {
         if(isFlag(vect[i][0], vect[i][1]))
@@ -318,7 +313,7 @@ void MyAI::storeSuccess(vector<array<int, 3>>& vect, int size, vector<array<int,
     }
 }
 
-
+//see if the square is covered and it has adjacent uncovered squares next to it
 bool MyAI::adjacentUncovered(int y, int x) {
     if(aiBoard[y][x] != -2) return false;
     bool up = false;
@@ -361,6 +356,7 @@ bool MyAI::adjacentUncovered(int y, int x) {
 
     return false;
 }
+
 void MyAI::updateCoverCount(int y, int x) {
     bool up = false;
     bool down = false;
@@ -578,6 +574,7 @@ void MyAI::flagAdjUncovDec(int y, int x) {
     }
 }
 
+// update values to make it look like a flag
 void MyAI::fakeFlag(int y, int x) {
     aiBoard[y][x] = -4;
     bool up = false;
@@ -636,6 +633,7 @@ void MyAI::fakeFlag(int y, int x) {
     }
 }
 
+// un-fakeFlags it by reseting the values
 void MyAI::unFakeFlag(int y, int x) {
     aiBoard[y][x] = -2;
     bool up = false;

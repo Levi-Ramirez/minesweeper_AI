@@ -27,9 +27,9 @@
 #include <set>
 #include <algorithm>
 #include <queue>
+#include <stack>
 #include <map>
 #include <utility>
-#include <vector>
 
 using namespace std;
 
@@ -55,6 +55,7 @@ public:
     //map<pair<int,int>, int> uncovFront; //the uncovered frontier (uncovered nodes adjacent to a covered node)
     // vector<array<int, 3>> uncovAdjVect; //a vector for the uncovered adjacent tiles
     vector<vector<array<int, 3>>> treeSolutions;
+    // vector<vector<array<int, 3>>> badCombos
 
 
     int colDim;
@@ -66,9 +67,15 @@ public:
     void boardInit(int _rowDimension, int _colDimension, int _agentX, int _agentY);
     //make a destructor to get rid of it at the end
     ~MyAI ();
+    void updateAdjGroupNum(int y, int x, int **arr, int group);
+    bool isDuplicate(vector<array<int, 3>>& vect1, int size1, vector<array<int, 3>>& vect2, int size2);
+    vector<vector<array<int, 3>>> partition();
+    vector<pair<int,int>> getUnseenCovereds(pair<int,int> cords, int **arr);
+    vector<pair<int,int>> adjUncovList(pair<int,int> cords, int **arr);
+    int influencesThisGroup(int y, int x, int **arr);
     bool isDuplicateVect(vector<array<int, 3>>& vect, int size);
     bool adjacentUncovered(int y, int x);
-    void treeMethod(vector<array<int, 3>>& vect, int size);
+    void treeMethod(vector<array<int, 3>>& vect, int size, int startIndex);
     void storeSuccess(vector<array<int, 3>>& vect, int size, vector<array<int, 3>>& solution);
     bool isFlag(int y, int x);
     int numFlagsAdj(int y, int x);

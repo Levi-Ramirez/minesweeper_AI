@@ -151,12 +151,13 @@ int main( int argc, char *argv[] )
         int easy = 0;
         int medium = 0;
         int expert = 0;
-
+        // int worldNum = 0;
         while ((ent = readdir(dir)) != NULL)
         {
+            // ++worldNum;
             if (ent->d_name[0] == '.')
                 continue;
-            if (verbose)
+            // if (verbose)
                 cout << "Running world: " << ent->d_name << endl;
 
             string individualWorldFile = worldFile + "/" + ent->d_name;
@@ -165,7 +166,7 @@ int main( int argc, char *argv[] )
             try {
                 World world(debug, aiType, individualWorldFile);
                 score = world.run();
-                cout << "finished running world" << endl;
+                // cout << "finished running world: " << worldNum << endl;
                 if (score == 3)
                     ++expert;
                 else if (score == 2)

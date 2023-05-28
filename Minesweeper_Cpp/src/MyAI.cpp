@@ -19,6 +19,13 @@
 
 #include "MyAI.hpp"
 using namespace std;
+bool debug = false;
+bool printBoards = false;
+
+bool compVects(vector<array<int, 3>> v1, vector<array<int, 3>> v2) {
+    return v1.size() < v2.size();
+}
+
 
 // flags = -1, covered = -2,
 // agent is the parent class of MyAI, so here we initialize it in
@@ -109,6 +116,7 @@ Agent::Action MyAI::getAction( int number )
         xLast = myP.second;
         updateCoverCount(yLast, xLast);
         // printBoard(frontier);
+        // cout << "uncovering yLast, xLast:" << yLast << ", " << xLast << endl;
         // printBoard(aiBoard);
         return {UNCOVER, xLast, yLast};
     }
@@ -125,7 +133,8 @@ Agent::Action MyAI::getAction( int number )
             xLast = myP.second;
             flagAdjUncovDec(yLast, xLast);
             // printBoard(frontier);
-            // printBoard(aiBoard);
+            //cout << "flagging" << yLast << ", " << xLast << endl;
+            //printBoard(aiBoard);
             return {FLAG, xLast, yLast};
         }
 
@@ -151,6 +160,9 @@ Agent::Action MyAI::getAction( int number )
 
 //tree method:
     //store uncovAdjVect positions
+
+    //we would need a vector of these vectors
+    //make an array of arrays
     vector<array<int, 3>> uncovAdjVect;
     for(int i = 0; i < rowDim; i++)
     {
@@ -162,55 +174,135 @@ Agent::Action MyAI::getAction( int number )
         }
     }
 
-    //run the tree method
-    treeMethod(uncovAdjVect, uncovAdjVect.size());
+    // vector<vector<array<int,3>>> myPartition;
+    // myPartition.push_back(uncovAdjVect);
+    vector<vector<array<int,3>>> myPartitionActual = partition();
+    sort(myPartitionActual.begin(), myPartitionActual.end(), compVects); //sort partition
+    // cout << "fake partition: " << endl;
+    // for(auto i: myPartition) {
+    //     cout << "size: " << i.size() << endl;
+    //     for(auto vect : i) {
+    //         cout << vect[0] << ", " << vect[1] << endl;
+    //     }
+    // }
 
-    int sizeSolu = treeSolutions.size(); //store the treeSolutions.size()
+    //sort partition (don't think I need this)
+    for(int i  = 0; i < myPartitionActual.size(); ++i) {
+        sort(myPartitionActual[i].begin(), myPartitionActual[i].end());
+        sort(myPartitionActual[i].begin(), myPartitionActual[i].end());
+    }
 
-    //add solutions to a map mapping them to the count
-    map<pair<int,int>, float> soluMap; //create a solution map with (y, x): frquency
-    pair<int,int> curPair;
+//trim down the partitions to 25:
+    for(int i = 0; i < myPartitionActual.size(); ++i) {
+        while(myPartitionActual[i].size() > 26) {
+            myPartitionActual[i].pop_back();
+        }
+    }
 
-    //loop to get the treeSolutions into the map
-    for(int i = 0; i < treeSolutions.size(); i++) {
-        for(int j = 0; j < treeSolutions[i].size(); j++) {
-            curPair.first = treeSolutions[i][j][0];
-            curPair.second = treeSolutions[i][j][1];
-            if(soluMap.find(curPair) != soluMap.end()){
-                soluMap[curPair] += 1;
-            }
-            else {
-                soluMap[curPair] = 1;
+//print actual partition
+    if(debug){
+        cout << "actual partition: " << endl;
+        for(auto i: myPartitionActual) {
+            cout << "size: " << i.size() << endl;
+            for(auto vect : i) {
+                cout << vect[0] << ", " << vect[1] << endl;
             }
         }
     }
+
     
-    bool guess = true;
+    // cout << "parition sections: " << myPartition.size() << endl;
 
-    //loop to calculate the frequency (by dividing by the total number of full solutions)  
-    for(auto const& item: soluMap) {
-        soluMap[item.first] = item.second / sizeSolu; //gets the ratio of the frequency of the solution for every flagged vertex
-        if(soluMap[item.first] == 1) { // if its 1, it needs a flag in all solutions
-            flagNext.push(item.first); //push it to flagNext
-            guess = false;
+
+    // //run the tree method
+    // printBoard(aiBoard);
+    bool guess = true;
+    int index = 0;
+    vector<map<pair<int,int>, float>> soluMapVect; //create a solution map with (y, x): frequency
+
+
+    for(vector<array<int,3>> curPart : myPartitionActual) {
+    //test print:
+        // cout << "passed partition: " << endl;
+        // cout << "size: " << curPart.size() << endl;
+        // for(auto vect : curPart) {
+        //     cout << vect[0] << ", " << vect[1] << endl;
+        // }
+        treeMethod(curPart, curPart.size(), 0);
+        map<pair<int,int>, float> emptyMap;
+        soluMapVect.push_back(emptyMap);
+        // treeMethod(uncovAdjVect, uncovAdjVect.size(), 0);
+        //cout << "done treeMethod" << endl;
+        int sizeSolu = treeSolutions.size(); //store the treeSolutions.size()
+
+        
+
+    //test print treeSolutions
+        if(debug){
+            for(auto vect : treeSolutions) {
+                cout << "a solution: ";
+                for(auto arr : vect) {
+                    cout << arr[0] << ": " << arr[1] << ", ";
+                }
+                cout << endl;
+            }
         }
+
+        pair<int,int> curPair;
+        //add solutions to a map mapping them to the count
+        //loop to get the treeSolutions into the map
+        for(int i = 0; i < treeSolutions.size(); i++) {
+            for(int j = 0; j < treeSolutions[i].size(); j++) {
+                curPair.first = treeSolutions[i][j][0];
+                curPair.second = treeSolutions[i][j][1];
+                if(soluMapVect[index].find(curPair) != soluMapVect[index].end()){
+                    soluMapVect[index][curPair] += 1;
+                }
+                else {
+                    soluMapVect[index][curPair] = 1;
+                }
+            }
+        }
+
+        //loop to calculate the frequency (by dividing by the total number of full solutions)  
+        for(auto const& item: soluMapVect[index]) {
+            soluMapVect[index][item.first] = item.second / sizeSolu; //gets the ratio of the frequency of the solution for every flagged vertex
+            if(soluMapVect[index][item.first] == 1) { // if its 1, it needs a flag in all solutions
+                flagNext.push(item.first); //push it to flagNext
+                guess = false;
+            }
+            if(debug){cout << "soluMapVect: " << item.first.first << ", " << item.first.second << ": " << soluMapVect[index][item.first] << endl;}
+        }
+
+        if(!guess) {
+            break;
+        }
+        //if it gets here, that means the frequencies for the last partition were calculated but none were found to be 1
+        //now, incriment the index and keep going
+        ++index;
+        treeSolutions.clear();
     }
+
+
+
     if(guess) { //if no frequencies equal 1, then we need an educated guess
         float maxVal = 0;
         pair<int, int> maxPair = {-1, -1};
-        for (const auto& item : soluMap) {
-            if(item.second > maxVal) {
-                maxVal = item.second;
-                maxPair = item.first;
+        for(int i = 0; i < soluMapVect.size(); i++) {
+            for (const auto& item : soluMapVect[i]) {
+                if(item.second > maxVal) {
+                    maxVal = item.second;
+                    maxPair = item.first;
+                }
             }
         }
+
         if(maxPair.first != -1) { //need to take an educated guess
             flagNext.push(maxPair);
         }
         else { //if it gets to here, then we need to randomly guess as no solutions were found (to be done later)
 
         }
-        
     }
 
     //run the flag process on the new found flags we found via the treeMethod
@@ -226,11 +318,14 @@ Agent::Action MyAI::getAction( int number )
         flagAdjUncovDec(yLast, xLast);
         // printBoard(frontier);
         // printBoard(aiBoard);
+        uncovAdjVect.clear();
         treeSolutions.clear();
+        // cout << "flagging" << yLast << ", " << xLast << endl;
+        // printBoard(aiBoard);
         return {FLAG, xLast, yLast};
     }
-
-
+    uncovAdjVect.clear();
+    treeSolutions.clear();
     //print treeSolutions
     // for(int i = 0; i < treeSolutions.size(); i++) {
     //     cout << "solution " << i << ": ";
@@ -257,40 +352,369 @@ Agent::Action MyAI::getAction( int number )
 // YOUR CODE BEGINS
 // ======================================================================
 
-//checks to see if the vertex already exists in treeSolutions
-bool MyAI::isDuplicateVect(vector<array<int, 3>>& vect, int size) {
 
-    for(int i = 0; i < treeSolutions.size(); i++) {
-        for(int j = 0; j < size; j++) {
-            //see if they are equal (also account for that their size may not be equal, if they aren't then it automatically isn't equal)
-            if(treeSolutions[i][j][0] == vect[j][0]) {
-                if(treeSolutions[i][j][1] == vect[j][1]) {
-                    if(treeSolutions[i][j][2] == vect[j][2]) {
-                        return true;
+vector<vector<array<int, 3>>> MyAI::partition() // Creates partitions for the map
+{
+    //initialize adjBoard
+    int **adjBoard;
+    adjBoard = new int*[rowDim]; //initialize board
+    for(int i = 0; i < rowDim; i++)
+    {
+        adjBoard[i] = new int[colDim];
+    }
+    for(int i = 0; i < rowDim; i++)
+    {
+        for(int j = 0; j < colDim; j++)
+        {
+            adjBoard[i][j] = 0; //means hasn't been accounted for
+        }
+    }
+    
+    //create stack and start DFS
+    stack<pair<int,int>> dfs;
+    vector<vector<array<int, 3>>> ret; //the partition
+    int count = -1;
+    for(int i = 0; i < rowDim; i++) //mighttt need to switch colDim to rowDim
+    {
+        for(int j = 0; j < colDim; j++)
+        {
+            if((aiBoard[i][j] > 0) && adjBoard[i][j] == 0) {
+                dfs.push({i, j}); //found a new section
+                vector<array<int, 3>> hold;
+                ret.push_back(hold);
+                ++count;
+               // cout << "count: " << count << endl;;
+            }
+           while(!dfs.empty()) {
+                pair<int,int> top = dfs.top();
+                dfs.pop();
+                if(adjBoard[top.first][top.second] == 1) {
+                    continue;
+                }
+                adjBoard[top.first][top.second] = 1;
+                vector<pair<int,int>> coverds = getUnseenCovereds(top, adjBoard);
+                for(pair<int,int> p : coverds)
+                {
+                    ret[count].push_back({{p.first, p.second, 0}});
+                    vector<pair<int,int>> nextCovs = adjUncovList(p, adjBoard);
+                    for(pair<int,int> nextCovsPair : nextCovs) {
+                        dfs.push(nextCovsPair);
                     }
                 }
             }
+        }
+        // ++count;
+    }
+
+    for(int i = 0; i < rowDim; ++i) { //changed to rowDim
+        delete[] adjBoard[i];
+    }
+    delete [] adjBoard;
+    return ret;
+} 
+vector<pair<int,int>> MyAI::getUnseenCovereds(pair<int,int> cords, int **arr) {
+    vector<pair<int,int>> covereds;
+    int y = cords.first;
+    int x = cords.second;
+    
+    bool up = false;
+    bool down = false;
+    if(y - 1 >= 0){
+        down = true;
+        if(isCovered(y - 1, x)){ //make sure its an adjacent covered square
+            if((arr[y - 1][x] == 0)){ //make sure it hasn't been seen before
+                covereds.push_back({y - 1, x});
+                arr[y - 1][x] = 2;
+            }
+        }
+    }
+    if(y + 1 < rowDim){
+        up = true;
+        if(isCovered(y + 1, x)){
+            if(arr[y + 1][x] == 0){
+                covereds.push_back({y + 1, x});
+                arr[y + 1][x] = 2;
+            }
+        }
+    }
+
+    if(x - 1 >= 0){
+        if(isCovered(y, x - 1)) {
+            if(arr[y][x - 1] == 0){
+                covereds.push_back({y, x - 1});
+                arr[y][x - 1] = 2;
+            }
+        }
+        if(up){
+            if(isCovered(y + 1, x - 1)){
+                if(arr[y + 1][x - 1] == 0){
+                    covereds.push_back({y + 1, x - 1});
+                    arr[y + 1][x - 1] = 2;
+                }
+            }
+        }
+        if(down){
+            if(isCovered(y - 1, x - 1)){
+                if(arr[y - 1][x - 1] == 0){
+                    covereds.push_back({y - 1, x - 1});
+                    arr[y - 1][x - 1] = 2;
+                }
+            }
+        }
+    }
+    if(x + 1 < colDim){
+        if(isCovered(y, x + 1)){
+            if(arr[y][x + 1] == 0){
+                covereds.push_back({y, x + 1});
+                arr[y][x + 1] = 2;
+            }
+        }
+        if(up){
+            if(isCovered(y + 1, x + 1)){
+                if(arr[y + 1][x + 1] == 0){
+                    covereds.push_back({y + 1, x + 1});
+                    arr[y + 1][x + 1] = 2;
+                }
+            }
+        }
+        if(down){
+            if(isCovered(y - 1, x + 1)){
+                if(arr[y - 1][x + 1] == 0){
+                    covereds.push_back({y - 1, x + 1});
+                    arr[y - 1][x + 1] = 2;
+                }
+            }
+        }
+    }
+
+    return covereds;
+}
+
+vector<pair<int,int>> MyAI::adjUncovList(pair<int,int> cords, int **arr) {
+    vector<pair<int,int>> myList;
+    int y = cords.first;
+    int x = cords.second;
+    if(aiBoard[y][x] != -2){
+        cout << "not a covered tile" << endl;
+        return myList;
+    }
+    bool up = false;
+    bool down = false;
+    if(y - 1 >= 0){
+        down = true;
+        if(!isCovered(y - 1, x) && !isFlag(y - 1, x) && arr[y - 1][x] == 0){
+            myList.push_back({y - 1, x});
+        }
+    }
+    if(y + 1 < rowDim){
+        up = true;
+        if(!isCovered(y + 1, x) && !isFlag(y + 1, x) && arr[y + 1][x] == 0){
+            myList.push_back({y + 1, x});
+        }
+    }
+
+    if(x - 1 >= 0){
+        if(!isCovered(y, x - 1) && !isFlag(y, x - 1) && arr[y][x - 1] == 0){
+            myList.push_back({y, x - 1});
+        }
+        if(up){
+            if(!isCovered(y + 1, x - 1) && !isFlag(y + 1, x - 1) && arr[y + 1][x - 1] == 0){
+                myList.push_back({y + 1, x - 1});
+            }
+        }
+        if(down){
+            if(!isCovered(y - 1, x - 1) && !isFlag(y - 1, x - 1) && arr[y - 1][x - 1] == 0) {
+                myList.push_back({y - 1, x - 1});
+            }
+        }
+    }
+    if(x + 1 < colDim){
+        if(!isCovered(y, x + 1) && !isFlag(y, x + 1) && arr[y][x + 1] == 0){
+            myList.push_back({y, x + 1});
+        }
+        if(up){
+            if(!isCovered(y + 1, x + 1) && !isFlag(y + 1, x + 1) && arr[y + 1][x + 1] == 0){
+                myList.push_back({y + 1, x + 1});
+            }
+        }
+        if(down){
+            if(!isCovered(y - 1, x + 1) && !isFlag(y - 1, x + 1) && arr[y - 1][x + 1] == 0){
+                myList.push_back({y - 1, x + 1});
+            }
+        }
+    }
+    return myList;
+}
+
+
+
+void MyAI::updateAdjGroupNum(int y, int x, int **arr, int group) {
+    if(aiBoard[y][x] != -2){
+        cout << "error in updateAjdGroupNum" << endl;
+        return;
+    }
+    bool up = false;
+    bool down = false;
+    if(y - 1 >= 0){
+        down = true;
+        if(!isCovered(y - 1, x) && !isFlag(y - 1, x))
+            arr[y - 1][x] = group;
+    }
+    if(y + 1 < rowDim){
+        up = true;
+        if(!isCovered(y + 1, x) && !isFlag(y + 1, x))
+            arr[y + 1][x] = group;
+    }
+
+    if(x - 1 >= 0){
+        if(!isCovered(y, x - 1) && !isFlag(y, x - 1))
+            arr[y][x - 1] = group;
+        if(up){
+            if(!isCovered(y + 1, x - 1) && !isFlag(y + 1, x - 1))
+            arr[y + 1][x - 1] = group;
+        }
+        if(down){
+            if(!isCovered(y - 1, x - 1) && !isFlag(y - 1, x - 1))
+            arr[y - 1][x - 1] = group;
+        }
+    }
+    if(x + 1 < colDim){
+        if(!isCovered(y, x + 1) && !isFlag(y, x + 1))
+            arr[y][x + 1] = group;
+        if(up){
+            if(!isCovered(y + 1, x + 1) && !isFlag(y + 1, x + 1))
+            arr[y + 1][x + 1] = group;
+        }
+        if(down){
+            if(!isCovered(y - 1, x + 1) && !isFlag(y - 1, x + 1))
+            arr[y - 1][x + 1] = group;
+        }
+    }
+
+}
+
+int MyAI::influencesThisGroup(int y, int x, int **arr) {
+    bool up = false;
+    bool down = false;
+    if(y - 1 >= 0){
+        down = true;
+        if(isCovered(y - 1, x)){
+            if(arr[y - 1][x] != -1){
+                return arr[y - 1][x];
+            }
+        }
+    }
+    if(y + 1 < rowDim){
+        up = true;
+        if(isCovered(y + 1, x)){
+            if(arr[y + 1][x] != -1){
+                return arr[y + 1][x];
+            }
+        }
+    }
+
+    if(x - 1 >= 0){
+        if(isCovered(y, x - 1)) {
+            if(arr[y][x - 1] != -1){
+                return arr[y][x - 1];
+            }
+        }
+        if(up){
+            if(isCovered(y + 1, x - 1)){
+                if(arr[y + 1][x - 1] != -1){
+                    return arr[y + 1][x - 1];
+                }
+            }
+        }
+        if(down){
+            if(isCovered(y - 1, x - 1)){
+                if(arr[y - 1][x - 1] != -1){
+                    return arr[y - 1][x - 1];
+                }
+            }
+        }
+    }
+    if(x + 1 < colDim){
+        if(isCovered(y, x + 1)){
+            if(arr[y][x + 1] != -1){
+                return arr[y][x + 1];
+            }
+        }
+        if(up){
+            if(isCovered(y + 1, x + 1)){
+                if(arr[y + 1][x + 1] != -1){
+                    return arr[y + 1][x + 1];
+                }
+            }
+        }
+        if(down){
+            if(isCovered(y - 1, x + 1)){
+                if(arr[y - 1][x + 1] != -1){
+                    return arr[y - 1][x + 1];
+                }
+            }
+        }
+    }
+
+    return -1;
+}
+
+
+bool MyAI::isDuplicate(vector<array<int, 3>>& vect1, int size1, vector<array<int, 3>>& vect2, int size2) {
+    if(size1 != size2) {
+        return false;
+    }
+    bool found = false;
+    for(int i = 0; i < size1; i++) {
+        found = false;
+        for(int j = 0; j < size2; j++) {
+            if(vect1[i][0] == vect2[j][0] && vect1[i][1] == vect2[j][1]) {
+                found = true;
+                break;
+            }
+        }
+        if(!found) {
+            return false;
+        }
+    }
+    return true;
+}
+
+//checks to see if the vertex already exists in treeSolutions
+bool MyAI::isDuplicateVect(vector<array<int, 3>>& vect, int size) {
+    for(vector<array<int, 3>> curSolution : treeSolutions) {
+        if(isDuplicate(curSolution, curSolution.size(), vect, size)) {
+            return true;
         }
     }
     return false;
 }
 
-void MyAI::treeMethod(vector<array<int, 3>>& vect, int size){
+void MyAI::treeMethod(vector<array<int, 3>>& vect, int size, int startIndex){
     int res = 0;
+    if(debug && printBoards){
+        cout << "called treeMethod/recursed" << endl;
+        printBoard(aiBoard);
+    }
 
-    for(int i = 0; i < size; i++) {
+    for(int i = startIndex; i < size; i++) {
         if(isFlag(vect[i][0], vect[i][1])){ //if it already is a flag, go back to the top of the loop and try again
             continue; 
         }
         fakeFlag(vect[i][0], vect[i][1]); //add a flag
+        if(debug && printBoards){
+            printBoard(aiBoard);
+        }
         res = vectAllZerosOrNeg(vect, size); //gets a integer representation the status of the board: 0 = solution found, -1 means invalid flag combination, 1 = need to keep recurring down the tree for a solution
 
         if(res == 0){ //means there has been a solution
+            //consider adding counter for solutions instead of vector of vectors and using the size
             vector<array<int, 3>> vectSolution;
             storeSuccess(vect, size, vectSolution); //store the flagged vectors that led to a solution here
             if(!isDuplicateVect(vectSolution, vectSolution.size())) {//if it is not a duplicate...
                 treeSolutions.push_back(vectSolution); //store this vector into the possible solutions
             }
+            
             vectSolution.clear();
             unFakeFlag(vect[i][0], vect[i][1]); //unflag most recent flag before going back to the top of the loop
             continue; //continue because you found a solution (aka backtrack)
@@ -300,7 +724,8 @@ void MyAI::treeMethod(vector<array<int, 3>>& vect, int size){
             continue; //continue, this is not a solution (aka backtrack)
         }
         //cout << "recurs" << endl;
-        treeMethod(vect, size); // continue recurssing if the above isn't true
+        ++startIndex;
+        treeMethod(vect, size, startIndex); // continue recurssing if the above isn't true
         unFakeFlag(vect[i][0], vect[i][1]); // after you recurs down this branch unflag it to go to other options, ex: [-4, -2, -2] --> [-2, -2, -2], so the first one was unflagged and on the next step it will go: [-2, -4, -2]
     }
 }
@@ -922,11 +1347,6 @@ void MyAI::printBoard(int **arr) {
     std::cout << std::endl;
 }
 
-
-// getY: the reson we use this is because when you go higher in y, you go up the baord
-// int MyAI::getY(int y) { 
-//     return (rowDim - yLast - 1);
-// }
 
 // ======================================================================
 // YOUR CODE ENDS
